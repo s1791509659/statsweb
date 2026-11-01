@@ -5,7 +5,7 @@
 
 **[简体中文](#简体中文) | [English](#english)**
 
-- 当前版本：**v2.0.3**（Fabric 模组 + Paper/Spigot 插件，实测 Minecraft 26.2）
+- 当前版本：**v2.0.4**（Fabric 模组 + Paper/Spigot 插件，实测 Minecraft 26.2）
 - **完全不调用 Minecraft 内部类**，只依赖平台 API（Fabric Loader / Bukkit）→ 同一份 jar 可跨游戏版本使用
 - **一个 jar 打通新旧世界布局**：自动识别 `players/stats`（MC 26.1+）与 `stats`（1.18–1.21）等两代目录结构
 - 零第三方依赖：HTTP 服务用 JDK 自带的 `com.sun.net.httpserver`，gson / slf4j 由游戏本体提供
@@ -29,8 +29,8 @@
 ### 部署（服务器管理员）
 
 1. 从 [Releases](https://github.com/s1791509659/MC-Statshub-Mod/releases) 下载对应平台的包：
-   - **Fabric**：`MC-Statshub-2.0.3-fabric-mc1.18.2-26.x-loader0.14.jar` → 放进服务器的 `mods/` 文件夹
-   - **Paper / Spigot**：`MC-Statshub-2.0.3-paper-spigot-mc1.18.2-26.x-api1.18.jar` → 放进服务器的 `plugins/` 文件夹
+   - **Fabric**：`MC-Statshub-2.0.4-fabric-mc1.18.2-26.x-loader0.14.jar` → 放进服务器的 `mods/` 文件夹
+   - **Paper / Spigot**：`MC-Statshub-2.0.4-paper-spigot-mc1.18.2-26.x-api1.18.jar` → 放进服务器的 `plugins/` 文件夹
 2. 启动服务器
 3. 首次启动会生成默认配置（Fabric：`config/statsweb.json`；Paper/Spigot：`plugins/StatsWeb/statsweb.json`，格式相同）：
 
@@ -79,8 +79,8 @@
 ```bash
 ./gradlew :fabric:build :paper:build
 # 产物 / artifacts:
-#   fabric/build/libs/MC-Statshub-2.0.3-fabric-mc1.18.2-26.x-loader0.14.jar
-#   paper/build/libs/MC-Statshub-2.0.3-paper-spigot-mc1.18.2-26.x-api1.18.jar
+#   fabric/build/libs/MC-Statshub-2.0.4-fabric-mc1.18.2-26.x-loader0.14.jar
+#   paper/build/libs/MC-Statshub-2.0.4-paper-spigot-mc1.18.2-26.x-api1.18.jar
 ```
 
 - 需要 **JDK 17+**（只编译，不需要装 Minecraft）
@@ -107,7 +107,7 @@ Turn the **StatsHub** web page into a **server-side** mod: install it on your se
 and every player can open `http://server-ip:8080` in a phone/PC browser to explore live, server-wide
 player data (Chinese at `/`, English at `/en`) — **no client mod, no file uploads**.
 
-- Version: **v2.0.3** (Fabric mod + Paper/Spigot plugin, verified on Minecraft 26.2)
+- Version: **v2.0.4** (Fabric mod + Paper/Spigot plugin, verified on Minecraft 26.2)
 - **Zero Minecraft classes** — only platform APIs (Fabric Loader / Bukkit), so one jar spans game versions
 - **One jar, both world layouts**: auto-detects `players/stats` (MC 26.1+) and `stats` (1.18–1.21)
 - Zero third-party dependencies: HTTP via JDK's `com.sun.net.httpserver`; gson / slf4j come from the game
@@ -126,8 +126,8 @@ player data (Chinese at `/`, English at `/en`) — **no client mod, no file uplo
 ### Deployment (server admins)
 
 1. Grab the package for your platform from [Releases](https://github.com/s1791509659/MC-Statshub-Mod/releases):
-   - **Fabric**: `MC-Statshub-2.0.3-fabric-mc1.18.2-26.x-loader0.14.jar` → drop it into the server's `mods/` folder
-   - **Paper / Spigot**: `MC-Statshub-2.0.3-paper-spigot-mc1.18.2-26.x-api1.18.jar` → drop it into the server's `plugins/` folder
+   - **Fabric**: `MC-Statshub-2.0.4-fabric-mc1.18.2-26.x-loader0.14.jar` → drop it into the server's `mods/` folder
+   - **Paper / Spigot**: `MC-Statshub-2.0.4-paper-spigot-mc1.18.2-26.x-api1.18.jar` → drop it into the server's `plugins/` folder
 2. Start the server
 3. On first launch a default config is created (Fabric: `config/statsweb.json`; Paper/Spigot: `plugins/StatsWeb/statsweb.json`, same format):
 
@@ -176,8 +176,8 @@ Every candidate directory is probed on startup; the startup log prints `(found)`
 ```bash
 ./gradlew :fabric:build :paper:build
 # artifacts:
-#   fabric/build/libs/MC-Statshub-2.0.3-fabric-mc1.18.2-26.x-loader0.14.jar
-#   paper/build/libs/MC-Statshub-2.0.3-paper-spigot-mc1.18.2-26.x-api1.18.jar
+#   fabric/build/libs/MC-Statshub-2.0.4-fabric-mc1.18.2-26.x-loader0.14.jar
+#   paper/build/libs/MC-Statshub-2.0.4-paper-spigot-mc1.18.2-26.x-api1.18.jar
 ```
 
 - Requires **JDK 17+** (compiles only — no Minecraft installation needed)
@@ -243,3 +243,14 @@ v2.0.3 验证 / v2.0.3 verified:
   / jsdom regression (8 assertions per page, Chinese + English) all pass: auto-apply, ranking refresh (podium + list), stable on repeated input, full option list restored when the keyword is cleared; the full `test_v4ext` two-page regression reports `errors: []`
 - 已同步网页版：[MC-Statshub commit `b0f1068`](https://github.com/s1791509659/MC-Statshub/commit/b0f1068)
   / mirrored to the web version: [MC-Statshub commit `b0f1068`](https://github.com/s1791509659/MC-Statshub/commit/b0f1068)
+
+v2.0.4 验证 / v2.0.4 verified:
+
+- **玩家档案新增「全部统计项」可展开列表**：原 Top 12 图表之外，玩家可检索全部统计条目（示例存档单人为 5299 项）——支持分类筛选、关键词搜索（中文名 / 英文 ID / 分类名）、数值升降序与名称排序，列表分块加载（首屏 100 行，每次追加 200 行，筛选命中后直接全量展示），每行显示图标、分类、数值、全服排名，并可一键跳转该指标的全服排行榜
+  / **new expandable "All Stats" list in the player profile**: beyond the fixed Top 12 chart, players can now search every stat entry (5299 items for a single player in the sample archive) — category filter, keyword search (translated name / raw id / category), sort by count or name, chunked loading (100 rows first, +200 per click, full result set as soon as a filter is active), each row showing icon, category, formatted value and server rank, with one-click jump to that metric's ranking
+- jsdom 回归（中英双页各 20 项断言）全部通过：折叠态与总数文案、分块累进至全量、搜索命中全量展示与空态、分类筛选行数一致性、两种排序、跳转排行榜、收起后进度重置；`test_v4ext` 双页完整回归 `errors: []`
+  / jsdom regression (20 assertions per page, Chinese + English) all pass: collapsed state and total count, chunked loading up to the full set, search showing all matches plus the empty state, category filter row-count consistency, both sort orders, ranking jump, progress reset on collapse; the full `test_v4ext` two-page regression reports `errors: []`
+- 已同步网页版：[MC-Statshub commit `ff26b9c`](https://github.com/s1791509659/MC-Statshub/commit/ff26b9c)
+  / mirrored to the web version: [MC-Statshub commit `ff26b9c`](https://github.com/s1791509659/MC-Statshub/commit/ff26b9c)
+- 服务端形态下同样可用（只读模式不影响该列表，仅隐藏上传/导入入口）
+  / works in server mode as well (read-only mode does not affect the list, it only hides upload/import entry points)
