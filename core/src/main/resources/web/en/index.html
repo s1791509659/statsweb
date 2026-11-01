@@ -883,6 +883,35 @@ canvas{max-width:100%}
     </div>
 
     <div class="card mb">
+      <div class="card-h"><h2>🔎 All Stats</h2><span class="hint" id="pfAllHint"></span></div>
+      <div id="pfAllBody" hidden>
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:14px">
+          <div><label>Category</label><select id="pfAllCat"><option value="all">All</option></select></div>
+          <div><label>Search items</label><input id="pfAllSearch" placeholder="item name / raw id"></div>
+          <div><label>Sort</label>
+            <select id="pfAllSort">
+              <option value="count-desc">Count desc</option>
+              <option value="count-asc">Count asc</option>
+              <option value="name">Name A→Z</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap" style="max-height:620px">
+          <table>
+            <thead><tr><th>Stat item</th><th>Category</th><th class="num">Count</th><th class="num">Server rank</th><th></th></tr></thead>
+            <tbody id="pfAllRows"></tbody>
+          </table>
+        </div>
+        <div style="text-align:center;padding:12px" id="pfAllMoreWrap">
+          <button class="btn ghost sm" id="pfAllMore">⤵ Show more</button>
+        </div>
+      </div>
+      <div style="text-align:center" id="pfAllToggleWrap">
+        <button class="btn ghost sm" id="pfAllToggle">⤵ Expand all stats</button>
+      </div>
+    </div>
+
+    <div class="card mb">
       <div class="card-h">
         <h2>🏅 Achievements</h2>
         <span class="hint" id="achSummary"></span>
@@ -4635,8 +4664,79 @@ function renderProfile() {
     }
   });
 
+  pfAllSetup(p);   // all stats (expandable + search/filter)
   renderAchievements(p);
   renderPlayerExtra(p);   // V4
+}
+
+/* --------------------- Profile: all stats (expandable) --------------------- */
+const PF_ALL_CHUNK = 100;
+let pfAllShown = PF_ALL_CHUNK;
+
+/** Rebuild the category dropdown (keep current choice) and refresh the toggle label */
+function pfAllSetup(p) {
+  const sel = $('#pfAllCat');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="all">All</option>';
+  orderedCats(c => pCat(p, c) > 0).forEach(c => {
+    const o = document.createElement('option');
+    o.value = c;
+    o.textContent = trCat(c) + ' (' + compact(pCat(p, c)) + ')';
+    sel.appendChild(o);
+  });
+  sel.value = Array.from(sel.options).some(o => o.value === cur) ? cur : 'all';
+  $('#pfAllToggle').textContent = $('#pfAllBody').hidden
+    ? '⤵ Expand all stats (' + p.map.size + ' total)'
+    : '⤴ Collapse';
+  if (!$('#pfAllBody').hidden) renderPfAll();
+}
+
+/** Filtered/searched/sorted data; returns { list, filtered } */
+function pfAllData() {
+  const p = player(S.current);
+  if (!p) return { list: [], filtered: false };
+  const cat = $('#pfAllCat').value;
+  const kw = ($('#pfAllSearch').value || '').toLowerCase().trim();
+  const sort = $('#pfAllSort').value;
+  let list = Array.from(p.map.entries()).map(([k, v]) => {
+    const i = k.indexOf('|');
+    return { cat: k.slice(0, i), item: k.slice(i + 1), v };
+  });
+  if (cat !== 'all') list = list.filter(x => x.cat === cat);
+  if (kw) list = list.filter(x =>
+    x.item.toLowerCase().includes(kw) ||
+    trItem(x.item).toLowerCase().includes(kw) ||
+    trCat(x.cat).includes(kw));
+  if (sort === 'count-asc') list.sort((a, b) => a.v - b.v);
+  else if (sort === 'name') list.sort((a, b) => trItem(a.item).localeCompare(trItem(b.item)));
+  else list.sort((a, b) => b.v - a.v);
+  return { list, filtered: cat !== 'all' || !!kw };
+}
+
+function renderPfAll() {
+  const p = player(S.current);
+  if (!p) return;
+  const { list, filtered } = pfAllData();
+  /* default view loads in chunks; any active filter/search shows all matches at once */
+  const cap = filtered ? list.length : Math.min(pfAllShown, list.length);
+  const slice = list.slice(0, cap);
+  $('#pfAllRows').innerHTML = slice.map(x => {
+    const r = leaderRank(x.cat, x.item, p.uuid);
+    return '<tr>' +
+      '<td><div class="item-cell">' + iconHTML(x.cat, x.item, true) +
+        '<div style="min-width:0"><div class="item-name">' + esc(trItem(x.item)) + '</div>' +
+        '<div class="item-id">' + esc(x.item) + '</div></div></div></td>' +
+      '<td><span class="cat-tag"><span>' + catMeta(x.cat).emoji + '</span>' + esc(trCat(x.cat)) + '</span></td>' +
+      '<td class="num">' + esc(fmtStat(x.cat, x.item, x.v)) + '</td>' +
+      '<td class="num">' + (r ? '#' + r : '<span style="color:var(--dim)">—</span>') + '</td>' +
+      '<td><button class="link-btn" data-cat="' + esc(x.cat) + '" data-item="' + esc(x.item) + '">Rank →</button></td>' +
+    '</tr>';
+  }).join('') || '<tr><td colspan="5" class="center muted" style="padding:34px">No matching stat items</td></tr>';
+  bindIconFallbacks($('#pfAllRows'));
+  $$('#pfAllRows [data-cat]').forEach(b =>
+    b.addEventListener('click', () => openMetricRanking(b.getAttribute('data-cat'), b.getAttribute('data-item'))));
+  $('#pfAllHint').textContent = 'Showing ' + slice.length + ' / ' + list.length;
+  $('#pfAllMoreWrap').style.display = list.length > slice.length ? '' : 'none';
 }
 
 /** Player在全服的排名 (By playtime) */
@@ -5581,6 +5681,26 @@ function bindEvents() {
   });
 
   /* 数据表 */
+  /* Profile: all stats (expandable) */
+  $('#pfAllToggle').addEventListener('click', () => {
+    const body = $('#pfAllBody');
+    body.hidden = !body.hidden;
+    if (body.hidden) pfAllShown = PF_ALL_CHUNK;   // reset chunk progress on collapse
+    const p = S.loaded && player(S.current);
+    $('#pfAllToggle').textContent = body.hidden
+      ? '⤵ Expand all stats' + (p ? ' (' + p.map.size + ' total)' : '')
+      : '⤴ Collapse';
+    if (!body.hidden) renderPfAll();
+  });
+  $('#pfAllMore').addEventListener('click', () => { pfAllShown += 200; renderPfAll(); });
+  let pfAllTimer = null;
+  $('#pfAllSearch').addEventListener('input', () => {
+    clearTimeout(pfAllTimer);
+    pfAllTimer = setTimeout(renderPfAll, 180);
+  });
+  $('#pfAllCat').addEventListener('change', renderPfAll);
+  $('#pfAllSort').addEventListener('change', renderPfAll);
+
   $('#categoryFilter').addEventListener('change', () => { S.tablePage = 1; renderTable(); });
   $('#sortSelect').addEventListener('change', e => {
     const v = e.target.value;

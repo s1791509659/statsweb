@@ -885,6 +885,35 @@ canvas{max-width:100%}
     </div>
 
     <div class="card mb">
+      <div class="card-h"><h2>🔎 全部统计项</h2><span class="hint" id="pfAllHint"></span></div>
+      <div id="pfAllBody" hidden>
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:14px">
+          <div><label>类别筛选</label><select id="pfAllCat"><option value="all">全部</option></select></div>
+          <div><label>项目搜索</label><input id="pfAllSearch" placeholder="中文名 / 英文 ID"></div>
+          <div><label>排序</label>
+            <select id="pfAllSort">
+              <option value="count-desc">数值 降序</option>
+              <option value="count-asc">数值 升序</option>
+              <option value="name">名称 A→Z</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap" style="max-height:620px">
+          <table>
+            <thead><tr><th>统计项</th><th>分类</th><th class="num">数值</th><th class="num">全服排名</th><th></th></tr></thead>
+            <tbody id="pfAllRows"></tbody>
+          </table>
+        </div>
+        <div style="text-align:center;padding:12px" id="pfAllMoreWrap">
+          <button class="btn ghost sm" id="pfAllMore">⤵ 显示更多</button>
+        </div>
+      </div>
+      <div style="text-align:center" id="pfAllToggleWrap">
+        <button class="btn ghost sm" id="pfAllToggle">⤵ 展开全部统计项</button>
+      </div>
+    </div>
+
+    <div class="card mb">
       <div class="card-h">
         <h2>🏅 成就墙</h2>
         <span class="hint" id="achSummary"></span>
@@ -4644,8 +4673,79 @@ function renderProfile() {
     }
   });
 
+  pfAllSetup(p);   // 全部统计项（可展开 + 搜索/筛选）
   renderAchievements(p);
   renderPlayerExtra(p);   // V4
+}
+
+/* --------------------- 档案：全部统计项（可展开） --------------------- */
+const PF_ALL_CHUNK = 100;
+let pfAllShown = PF_ALL_CHUNK;
+
+/** 重建类别下拉（保留当前选择），并刷新折叠按钮上的总数 */
+function pfAllSetup(p) {
+  const sel = $('#pfAllCat');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="all">全部</option>';
+  orderedCats(c => pCat(p, c) > 0).forEach(c => {
+    const o = document.createElement('option');
+    o.value = c;
+    o.textContent = trCat(c) + '（' + compact(pCat(p, c)) + '）';
+    sel.appendChild(o);
+  });
+  sel.value = Array.from(sel.options).some(o => o.value === cur) ? cur : 'all';
+  $('#pfAllToggle').textContent = $('#pfAllBody').hidden
+    ? '⤵ 展开全部统计项（共 ' + p.map.size + ' 项）'
+    : '⤴ 收起';
+  if (!$('#pfAllBody').hidden) renderPfAll();
+}
+
+/** 按当前筛选/搜索/排序取数据；返回 { list, filtered } */
+function pfAllData() {
+  const p = player(S.current);
+  if (!p) return { list: [], filtered: false };
+  const cat = $('#pfAllCat').value;
+  const kw = ($('#pfAllSearch').value || '').toLowerCase().trim();
+  const sort = $('#pfAllSort').value;
+  let list = Array.from(p.map.entries()).map(([k, v]) => {
+    const i = k.indexOf('|');
+    return { cat: k.slice(0, i), item: k.slice(i + 1), v };
+  });
+  if (cat !== 'all') list = list.filter(x => x.cat === cat);
+  if (kw) list = list.filter(x =>
+    x.item.toLowerCase().includes(kw) ||
+    trItem(x.item).toLowerCase().includes(kw) ||
+    trCat(x.cat).includes(kw));
+  if (sort === 'count-asc') list.sort((a, b) => a.v - b.v);
+  else if (sort === 'name') list.sort((a, b) => trItem(a.item).localeCompare(trItem(b.item), 'zh-Hans-CN'));
+  else list.sort((a, b) => b.v - a.v);
+  return { list, filtered: cat !== 'all' || !!kw };
+}
+
+function renderPfAll() {
+  const p = player(S.current);
+  if (!p) return;
+  const { list, filtered } = pfAllData();
+  /* 默认视图分块加载；一旦筛选/搜索命中就直接展示全部结果 */
+  const cap = filtered ? list.length : Math.min(pfAllShown, list.length);
+  const slice = list.slice(0, cap);
+  $('#pfAllRows').innerHTML = slice.map(x => {
+    const r = leaderRank(x.cat, x.item, p.uuid);
+    return '<tr>' +
+      '<td><div class="item-cell">' + iconHTML(x.cat, x.item, true) +
+        '<div style="min-width:0"><div class="item-name">' + esc(trItem(x.item)) + '</div>' +
+        '<div class="item-id">' + esc(x.item) + '</div></div></div></td>' +
+      '<td><span class="cat-tag"><span>' + catMeta(x.cat).emoji + '</span>' + esc(trCat(x.cat)) + '</span></td>' +
+      '<td class="num">' + esc(fmtStat(x.cat, x.item, x.v)) + '</td>' +
+      '<td class="num">' + (r ? '#' + r : '<span style="color:var(--dim)">—</span>') + '</td>' +
+      '<td><button class="link-btn" data-cat="' + esc(x.cat) + '" data-item="' + esc(x.item) + '">排行 →</button></td>' +
+    '</tr>';
+  }).join('') || '<tr><td colspan="5" class="center muted" style="padding:34px">没有符合条件的统计项</td></tr>';
+  bindIconFallbacks($('#pfAllRows'));
+  $$('#pfAllRows [data-cat]').forEach(b =>
+    b.addEventListener('click', () => openMetricRanking(b.getAttribute('data-cat'), b.getAttribute('data-item'))));
+  $('#pfAllHint').textContent = '已显示 ' + slice.length + ' / ' + list.length + ' 项';
+  $('#pfAllMoreWrap').style.display = list.length > slice.length ? '' : 'none';
 }
 
 /** 玩家在全服的排名（按游戏时长） */
@@ -5587,6 +5687,26 @@ function bindEvents() {
     $('#cmpA').value = b; $('#cmpB').value = a;
     renderCompare();
   });
+
+  /* 档案：全部统计项（可展开） */
+  $('#pfAllToggle').addEventListener('click', () => {
+    const body = $('#pfAllBody');
+    body.hidden = !body.hidden;
+    if (body.hidden) pfAllShown = PF_ALL_CHUNK;   // 收起时重置分块进度
+    const p = S.loaded && player(S.current);
+    $('#pfAllToggle').textContent = body.hidden
+      ? '⤵ 展开全部统计项' + (p ? '（共 ' + p.map.size + ' 项）' : '')
+      : '⤴ 收起';
+    if (!body.hidden) renderPfAll();
+  });
+  $('#pfAllMore').addEventListener('click', () => { pfAllShown += 200; renderPfAll(); });
+  let pfAllTimer = null;
+  $('#pfAllSearch').addEventListener('input', () => {
+    clearTimeout(pfAllTimer);
+    pfAllTimer = setTimeout(renderPfAll, 180);
+  });
+  $('#pfAllCat').addEventListener('change', renderPfAll);
+  $('#pfAllSort').addEventListener('change', renderPfAll);
 
   /* 数据表 */
   $('#categoryFilter').addEventListener('change', () => { S.tablePage = 1; renderTable(); });
